@@ -46,65 +46,11 @@ object Plugin extends sbt.Plugin {
     case Patch => version.bumpPatch
   }
 
-  private def setVersionStr(v: Valid) =
-    """version := "%s"""" format v
-
-  private def applyVersion(extracted: Extracted, state: State, commit: Boolean = true)
-                          (version: Valid) =
-    if (commit) applyProjectVersion(version, extracted, state)
-    else applyMemoryVersion(version, extracted, state)
-
-  private def eval(version: Valid, extracted: Extracted) = {
-    import BuiltinCommands.imports
-    import extracted.{ currentLoader, session }
-    val expr = setVersionStr(version)
-    EvaluateConfigurations.evaluateSetting(
-      session.currentEval(), // Eval
-      "<set>",               // name str
-      imports(extracted),    // imports  Seq[(String, Int)]
-      expr,// expression str
-      LineRange(0,0)         // line range ( use no range type - mark )
-    )(currentLoader)
-  }
-
-  private def applyProjectVersion(version: Valid, extracted: Extracted, state: State) = {
-    import BuiltinCommands.{ reapply, DefaultBootCommands }
-    import CommandStrings.{ DefaultsCommand, InitCommand }
-    import extracted.{
-      currentRef, rootProject, session, structure
-    }
-          
-    // transform
-    val transformed = Load.transformSettings(
-      Load.projectScope(currentRef),
-      currentRef.build,
-      rootProject,
-      eval(version, extracted))
-      
-    // mix
-    val expr = setVersionStr(version)
-    val mixed = session.appendSettings(
-      transformed map(a => (a, expr.split('\n').toList)))
-
-    // reapply new settings saving persisting them build.sbt
-    val commands = (CommandStrings.SessionCommand + " save") +:
-                    DefaultsCommand +:
-                    InitCommand +:
-                    DefaultBootCommands
-    reapply(mixed,
-            structure,
-            state.copy(remainingCommands = commands))
-  }
-
-  private def applyMemoryVersion(version: Valid, extracted: Extracted, state: State) =
-    extracted.append(eval(version, extracted), state)
-
-
   /** append a build id to current semver */
   private def versionBuild(state: State, build: String) = {
     val log = state.log
     val extracted = Project extract state
-    val app = applyVersion(extracted, state)_
+    val app = Apply(extracted, state)_
     extracted.getOpt(semver).map({
       case Invalid(invalid) =>
         log.error("Could not append build id to non-semantic version %s"
@@ -126,7 +72,7 @@ object Plugin extends sbt.Plugin {
   private def versionPrerelease(state: State, prerelease: String) = {
     val log = state.log
     val extracted = Project extract state
-    val app = applyVersion(extracted, state)_
+    val app = Apply(extracted, state)_
     extracted.getOpt(semver).map({
       case Invalid(invalid) =>
         log.error("Could not append prerelease id to non-semantic version %s"
@@ -157,7 +103,7 @@ object Plugin extends sbt.Plugin {
             log.error("Could not bump non semantic version %s" format inv)
             state.fail
           case next: Valid =>
-            applyVersion(extracted, state)(next)
+            Apply(extracted, state)(next)
         }
     }).getOrElse {
       log.warn("state not changed")
