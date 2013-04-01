@@ -10,7 +10,7 @@ sbtPlugin := true
 
 scalacOptions := Seq("-deprecation")
 
-libraryDependencies += "me.lessis" %% "semverfi" % "0.1.2"
+libraryDependencies += "me.lessis" %% "semverfi" % "0.1.3"
 
 publishTo := Some(Classpaths.sbtPluginReleases)
 

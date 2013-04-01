@@ -2,10 +2,12 @@ package semver
 
 import semverfi.Valid
 
+/** Abstracts away a lot of the boiler plate required to evaluate
+ *  and apply a setting dynamically */
 object Apply {
   import sbt._
   def apply(extracted: Extracted, state: State, commit: Boolean = true)
-              (version: Valid) =
+           (version: Valid) =
     if (commit) applyProjectVersion(version, extracted, state)
     else applyMemoryVersion(version, extracted, state)
 
@@ -22,12 +24,24 @@ object Apply {
     )(currentLoader)
   }
 
+  private def tee(version: Valid)(file: File) = {
+    val to = new java.io.FileWriter(file)
+    to.write(version.toString)
+    to.flush()
+    to.close()
+  }
+
   private def applyProjectVersion(version: Valid, extracted: Extracted, state: State) = {
     import BuiltinCommands.{ reapply, DefaultBootCommands }
     import CommandStrings.{ DefaultsCommand, InitCommand }
     import extracted.{
       currentRef, rootProject, session, structure
     }
+
+    // optionally tee version transformation to a alternate file.
+    // this is useful for exposing semversions to
+    // external tools.
+    extracted.getOpt(Plugin.semverTeeFile).map(_.map(tee(version)))
           
     // transform
     val transformed = Load.transformSettings(
