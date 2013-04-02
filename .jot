@@ -1,2 +1,3 @@
 aggregation - https://github.com/harrah/xsbt/wiki/Getting-Started-Multi-Project#aggregation
 cmds - http://www.scala-sbt.org/release/docs/Extending/Commands.html
+extracted - https://github.com/sbt/sbt/blob/0.13/main/src/main/scala/sbt/Extracted.scala

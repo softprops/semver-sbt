@@ -73,18 +73,27 @@ object Plugin extends sbt.Plugin {
   private def versionNormalize(state: State) = {
     val log = state.log
     val extracted = Project extract state
-    val app = Apply(extracted, state)_
-    extracted.getOpt(semver).map({
-      case Invalid(invalid) =>
-        log.error("Could not normalize version info to non-semantic version %s"
-                  .format(invalid))
-        state.fail
-      case v: Valid =>
-        app(v.normalize)
-    }).getOrElse {
-      log.warn("state not changed")
-      state
-    }
+    import sbt.Project.showContextKey // implicit showkey for extracted
+    val versions: Seq[Either[String, (Extracted, Valid)]] =
+      extracted.structure.allProjectRefs.map { ref =>
+        val ext = Extracted(extracted.structure, extracted.session, ref)(showContextKey(state))
+        ext.getOpt(semver).map({
+          case Invalid(invalid) =>
+            Left("Could not normalize version info for non-semantic version %s"
+                 .format(invalid))
+          case v: Valid =>
+            Right((ext, v.normalize))
+        }).getOrElse(Left("Build %s did not define a semver" format (ref.project)))
+      }
+    val (valid, invalid) = versions.partition(_.isRight)
+    invalid.foreach { case Left(e) => log.error(e) }
+    if (valid.isEmpty) state.fail
+    else ((state /: valid) {
+      case (state, Right((ext, valid))) =>
+        println("changing %s version to %s"
+                .format(ext.currentRef.project, valid))
+        Apply(ext, state)(valid)
+    })
   }
 
   private def versionAppend(state: State, extra: Extra) = {
