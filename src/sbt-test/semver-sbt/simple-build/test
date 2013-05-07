@@ -1,0 +1,22 @@
+# http://eed3si9n.com/testing-sbt-plugins
+# test bumping
+
+# should start with initial version
+> expect-version "0.1.0-SNAPSHOT"
+
+# this file should not exist yet
+-$ exists .semver
+
+# should bump ( this should not fail )
+-> semver-bump minor
+
+# should generate tee file
+$ exists .semver
+
+$ pause
+
+# with valid contents ( this should not fail )
+> tee-contents "0.2.0"
+
+# build should have expected version ( this should not fail )
+> expect-version "0.2.0"
