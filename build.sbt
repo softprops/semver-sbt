@@ -35,4 +35,10 @@ pomExtra := (
     </developer>
   </developers>)
 
-seq(semverSettings: _*)
+seq(scriptedSettings: _*)
+
+scriptedBufferLog := false
+
+logLevel := Level.Debug
+
+//seq(semverSettings: _*)
