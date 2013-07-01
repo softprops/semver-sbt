@@ -8,6 +8,10 @@ description := "Semantic versions for sbt projects"
 
 sbtPlugin := true
 
+sbtVersion in Global := "0.13.0-RC1"
+
+scalaVersion in Global := "2.10.2"
+
 scalacOptions := Seq("-deprecation")
 
 libraryDependencies += "me.lessis" %% "semverfi" % "0.1.3"
